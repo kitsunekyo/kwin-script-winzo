@@ -46,7 +46,7 @@ function shallowCompare(a, b) {
 function handleGeometryChanged(changedGeometry) {
   const windowId = workspace.activeWindow.internalId;
 
-  const { managedGeometry, originalGeometry } = managedWindows.get(windowId);
+  const { originalGeometry } = managedWindows.get(windowId);
 
   const wasChanged = !shallowCompare(originalGeometry, changedGeometry);
 
@@ -88,7 +88,7 @@ function onShortcut() {
     return;
   }
 
-  const managedGeometry = getAlmostMaximizedGeometry(0.95);
+  const managedGeometry = getAlmostMaximizedGeometry(100);
   const originalGeometry = Object.assign(
     {},
     workspace.activeWindow.frameGeometry,
@@ -103,17 +103,18 @@ function onShortcut() {
 /**
  *
  * @param {number} padding
+ * @param {number} dockOffset - Offset the window height and position by the dock height (WIP)
  * @returns {QRectF}
  */
-function getAlmostMaximizedGeometry(padding) {
+function getAlmostMaximizedGeometry(padding, dockOffset = 0) {
   const desktopWidth = workspace.workspaceWidth;
   const desktopHeight = workspace.workspaceHeight;
 
   const width = desktopWidth - padding;
-  const height = desktopHeight - padding;
+  const height = desktopHeight - padding - dockOffset;
 
   const x = (desktopWidth - width) / 2;
-  const y = (desktopHeight - height) / 2;
+  const y = (desktopHeight - height) / 2 - dockOffset;
 
   return { x, y, width, height };
 }
