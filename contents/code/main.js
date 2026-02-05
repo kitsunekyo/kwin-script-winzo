@@ -1,8 +1,22 @@
 /**
+ * @typedef {object} QRectF
+ * @property {number} x
+ * @property {number} y
+ * @property {number} width
+ * @property {number} height
+ */
+
+/**
  * { originalGeometry: QFrameGeometry; managedGeometry: QFrameGeometry }
  */
 const managedWindows = new Map();
 
+/**
+ *
+ * @param {{}} a
+ * @param {{}} b
+ * @returns {boolean}
+ */
 function shallowCompare(a, b) {
   try {
     const aKeys = Object.keys(a);
@@ -24,6 +38,11 @@ function shallowCompare(a, b) {
   }
 }
 
+/**
+ *
+ * @param {QRectF} changedGeometry
+ * @returns
+ */
 function handleGeometryChanged(changedGeometry) {
   const windowId = workspace.activeWindow.internalId;
 
@@ -41,10 +60,15 @@ function handleGeometryChanged(changedGeometry) {
     width: originalGeometry.width,
     height: originalGeometry.height,
   };
+
   workspace.activeWindow.frameGeometryChanged.disconnect(handleGeometryChanged);
   managedWindows.delete(windowId);
 }
 
+/**
+ *
+ * @returns void
+ */
 function onShortcut() {
   const windowId = workspace.activeWindow.internalId;
 
@@ -64,7 +88,7 @@ function onShortcut() {
     return;
   }
 
-  const managedGeometry = getAlmostMaximizedGeometry(0.9);
+  const managedGeometry = getAlmostMaximizedGeometry(0.95);
   const originalGeometry = Object.assign(
     {},
     workspace.activeWindow.frameGeometry,
@@ -76,12 +100,17 @@ function onShortcut() {
   workspace.activeWindow.frameGeometryChanged.connect(handleGeometryChanged);
 }
 
-function getAlmostMaximizedGeometry(sizePercentage) {
+/**
+ *
+ * @param {number} padding
+ * @returns {QRectF}
+ */
+function getAlmostMaximizedGeometry(padding) {
   const desktopWidth = workspace.workspaceWidth;
   const desktopHeight = workspace.workspaceHeight;
 
-  const width = desktopWidth * sizePercentage;
-  const height = desktopHeight * sizePercentage;
+  const width = desktopWidth - padding;
+  const height = desktopHeight - padding;
 
   const x = (desktopWidth - width) / 2;
   const y = (desktopHeight - height) / 2;
