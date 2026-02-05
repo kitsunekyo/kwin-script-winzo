@@ -72,10 +72,10 @@ function handleGeometryChanged(changedGeometry) {
 }
 
 /**
- *
+ * @param {QRectF} desiredGeometry
  * @returns void
  */
-function onShortcut() {
+function updateGeometry(managedGeometry) {
   const windowId = workspace.activeWindow.internalId;
 
   const managedWindow = managedWindows.get(windowId);
@@ -94,7 +94,6 @@ function onShortcut() {
     return;
   }
 
-  const managedGeometry = getAlmostMaximizedGeometry(100);
   const originalGeometry = Object.assign(
     {},
     workspace.activeWindow.frameGeometry,
@@ -107,22 +106,39 @@ function onShortcut() {
 }
 
 /**
- *
- * @param {number} padding
- * @param {number} dockOffset - Offset the window height and position by the dock height (WIP)
- * @returns {QRectF}
+ * Returns a new centered QRectF
+ * @param {{ width: number, height: number, x?: number, y?: number }} geometry
  */
-function getAlmostMaximizedGeometry(padding, dockOffset = 0) {
+function centerGeometry(geometry) {
   const desktopWidth = workspace.workspaceWidth;
   const desktopHeight = workspace.workspaceHeight;
 
-  const width = desktopWidth - padding;
-  const height = desktopHeight - padding - dockOffset;
+  const x = (desktopWidth - geometry.width) / 2;
+  const y = (desktopHeight - geometry.height) / 2;
 
-  const x = (desktopWidth - width) / 2;
-  const y = (desktopHeight - height) / 2 - dockOffset;
+  return Object.assign({}, geometry, { x, y });
+}
 
-  return { x, y, width, height };
+/**
+ *
+ * @param {number} padding
+ * @returns {QRectF}
+ */
+function getPaddedGeometry(padding) {
+  return centerGeometry({
+    width: workspace.workspaceWidth - padding,
+    height: workspace.workspaceHeight - padding,
+  });
+}
+
+/**
+ *
+ * @param {number} width
+ * @param {number} height
+ * @returns {QRectF}
+ */
+function getSizedGeometry(width, height) {
+  return centerGeometry({ width, height });
 }
 
 registerShortcut(
@@ -131,7 +147,20 @@ registerShortcut(
   "Meta+Ctrl+Backspace",
   () => {
     try {
-      onShortcut();
+      updateGeometry(getPaddedGeometry(100));
+    } catch (e) {
+      console.error("something went wrong", e);
+    }
+  },
+);
+
+registerShortcut(
+  "winzo: Set 1080p",
+  "winzo: Set 1080p",
+  "Meta+Ctrl+Enter",
+  () => {
+    try {
+      updateGeometry(getSizedGeometry(1920, 1080));
     } catch (e) {
       console.error("something went wrong", e);
     }
