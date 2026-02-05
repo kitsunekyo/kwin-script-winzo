@@ -1,0 +1,18 @@
+{
+  "KPlugin": {
+    "Name": "winzo",
+    "Id": "winzo",
+    "Description": "Simple shortcuts for window management.",
+    "Version": "1.0",
+    "License": "MIT",
+    "Authors": [
+      {
+        "Email": "alexander.spieslechner@gmail.com",
+        "Name": "Alexander Spieslechner"
+      }
+    ]
+  },
+  "X-Plasma-API": "javascript",
+  "X-Plasma-MainScript": "code/main.js",
+  "KPackageStructure": "KWin/Script"
+}
