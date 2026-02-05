@@ -3,39 +3,46 @@
  */
 const managedWindows = new Map();
 
-function handleGeometryChanged(changedGeometry) {
-  console.log("geometry changed");
+function shallowCompare(a, b) {
+  try {
+    const aKeys = Object.keys(a);
+    const bKeys = Object.keys(b);
 
+    if (aKeys.length !== bKeys.length) {
+      return false;
+    }
+
+    for (const property in a) {
+      if (a[property] !== b[property]) {
+        return false;
+      }
+    }
+
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+function handleGeometryChanged(changedGeometry) {
   const windowId = workspace.activeWindow.internalId;
 
-  const { managedGeometry } = managedWindows.get(windowId);
+  const { managedGeometry, originalGeometry } = managedWindows.get(windowId);
 
-  if (!managedGeometry) {
-    console.log("isnt managed, abort");
-    workspace.activeWindow.frameGeometryChanged.disconnect(
-      handleGeometryChanged,
-    );
-  }
+  const wasChanged = !shallowCompare(originalGeometry, changedGeometry);
 
-  console.log(`${managedGeometry.width} === ${changedGeometry.width}`);
-  console.log(`${managedGeometry.height} === ${changedGeometry.height}`);
-  console.log(`${managedGeometry.x} === ${changedGeometry.x}`);
-  console.log(`${managedGeometry.y} === ${changedGeometry.y}`);
-
-  const wasChanged =
-    managedGeometry.width !== changedGeometry.width ||
-    managedGeometry.height !== changedGeometry.height ||
-    managedGeometry.x !== changedGeometry.x ||
-    managedGeometry.y !== changedGeometry.y;
-
-  if (wasChanged) {
-    console.log("changed, giving up control");
-    workspace.activeWindow.frameGeometryChanged.disconnect(
-      handleGeometryChanged,
-    );
-    managedWindows.delete(windowId);
+  if (!wasChanged) {
     return;
   }
+
+  workspace.activeWindow.frameGeometry = {
+    x: changedGeometry.x,
+    y: changedGeometry.y,
+    width: originalGeometry.width,
+    height: originalGeometry.height,
+  };
+  workspace.activeWindow.frameGeometryChanged.disconnect(handleGeometryChanged);
+  managedWindows.delete(windowId);
 }
 
 function onShortcut() {
@@ -43,11 +50,7 @@ function onShortcut() {
 
   const managedWindow = managedWindows.get(windowId);
 
-  console.log("1. stored geometry", managedWindow);
-
   if (!!managedWindow) {
-    console.log("a2. is stored");
-
     workspace.activeWindow.frameGeometry = Object.assign(
       {},
       managedWindow.originalGeometry,
@@ -61,7 +64,6 @@ function onShortcut() {
     return;
   }
 
-  console.log("b2. is NOT stored");
   const managedGeometry = getAlmostMaximizedGeometry(0.9);
   const originalGeometry = Object.assign(
     {},
@@ -69,16 +71,9 @@ function onShortcut() {
   );
 
   managedWindows.set(windowId, { originalGeometry, managedGeometry });
-  console.log("b3. pushed stash", managedWindows.get(windowId));
 
   workspace.activeWindow.frameGeometry = managedGeometry;
-  console.log("b4. updated geometry");
-
   workspace.activeWindow.frameGeometryChanged.connect(handleGeometryChanged);
-
-  workspace.activeWindow.windowClosed.connect(() => {
-    window.frameGeometryChanged.disconnect(onFrameGeometryChanged);
-  });
 }
 
 function getAlmostMaximizedGeometry(sizePercentage) {
@@ -94,11 +89,15 @@ function getAlmostMaximizedGeometry(sizePercentage) {
   return { x, y, width, height };
 }
 
-workspace.activeWindow.frameGeometryChanged.disconnect(handleGeometryChanged);
-
 registerShortcut(
   "winzo: Almost maximize",
   "winzo: Almost maximize",
   "Meta+Ctrl+Backspace",
-  onShortcut,
+  () => {
+    try {
+      onShortcut();
+    } catch (e) {
+      console.error("something went wrong", e);
+    }
+  },
 );
