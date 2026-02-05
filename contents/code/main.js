@@ -7,7 +7,13 @@
  */
 
 /**
- * { originalGeometry: QFrameGeometry; managedGeometry: QFrameGeometry }
+ * Stores per-window state for the "almost maximize" toggle.
+ *
+ * Map key is the KWin window `internalId` of the currently managed window.
+ * Map value contains the window's original geometry (to restore) and the
+ * target managed geometry (almost maximized).
+ *
+ * @type {Map<string, { originalGeometry: QRectF, managedGeometry: QRectF }>}
  */
 const managedWindows = new Map();
 
