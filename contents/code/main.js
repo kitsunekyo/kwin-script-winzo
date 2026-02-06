@@ -45,29 +45,12 @@ function shallowCompare(a, b) {
 }
 
 /**
- *
- * @param {QRectF} changedGeometry
- * @returns
+ * removes window from managedWindows state and disconnects from moveResizedChanged signal
  */
-function handleGeometryChanged(changedGeometry) {
+function releaseControl() {
   const windowId = workspace.activeWindow.internalId;
 
-  const { originalGeometry } = managedWindows.get(windowId);
-
-  const wasChanged = !shallowCompare(originalGeometry, changedGeometry);
-
-  if (!wasChanged) {
-    return;
-  }
-
-  workspace.activeWindow.frameGeometry = {
-    x: changedGeometry.x,
-    y: changedGeometry.y,
-    width: originalGeometry.width,
-    height: originalGeometry.height,
-  };
-
-  workspace.activeWindow.frameGeometryChanged.disconnect(handleGeometryChanged);
+  workspace.activeWindow.moveResizedChanged.disconnect(releaseControl);
   managedWindows.delete(windowId);
 }
 
@@ -75,19 +58,36 @@ function handleGeometryChanged(changedGeometry) {
  * @param {QRectF} desiredGeometry
  * @returns void
  */
-function updateGeometry(managedGeometry) {
+function updateGeometry(targetGeometry) {
+  const isDesktop = workspace.activeWindow.desktopWindow;
+  if (isDesktop) {
+    return;
+  }
+
   const windowId = workspace.activeWindow.internalId;
 
   const managedWindow = managedWindows.get(windowId);
 
   if (!!managedWindow) {
+    const isManagedButDifferentSize = !shallowCompare(
+      targetGeometry,
+      managedWindow.managedGeometry,
+    );
+
+    if (isManagedButDifferentSize) {
+      workspace.activeWindow.frameGeometry = targetGeometry;
+      managedWindows.set(
+        windowId,
+        Object.assign({}, managedWindow, { managedGeometry: targetGeometry }),
+      );
+      return;
+    }
+
     workspace.activeWindow.frameGeometry = Object.assign(
       {},
       managedWindow.originalGeometry,
     );
-    workspace.activeWindow.frameGeometryChanged.disconnect(
-      handleGeometryChanged,
-    );
+    workspace.activeWindow.moveResizedChanged.disconnect(releaseControl);
 
     managedWindows.delete(windowId);
 
@@ -99,10 +99,14 @@ function updateGeometry(managedGeometry) {
     workspace.activeWindow.frameGeometry,
   );
 
-  managedWindows.set(windowId, { originalGeometry, managedGeometry });
+  managedWindows.set(windowId, {
+    originalGeometry,
+    managedGeometry: targetGeometry,
+  });
 
-  workspace.activeWindow.frameGeometry = managedGeometry;
-  workspace.activeWindow.frameGeometryChanged.connect(handleGeometryChanged);
+  workspace.activeWindow.frameGeometry = targetGeometry;
+  workspace.activeWindow.moveResizedChanged.connect(releaseControl);
+  workspace.activeWindow.closed.connect(releaseControl);
 }
 
 /**
